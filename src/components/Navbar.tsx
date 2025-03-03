@@ -1,9 +1,11 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Image from "next/image";
 import Link from "next/link";
+import logo from "../../public/img/velobid-tranparent.png";
 
 const Navbar = () => {
   return (
-    <div className="navbar bg-white text-black shadow-md fixed top-0 z-50 px-5">
+    <div className="navbar bg-three text-black shadow-md fixed top-0 z-50 px-5">
       <div className="navbar-start">
         <div className="dropdown">
           <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
@@ -33,16 +35,14 @@ const Navbar = () => {
               <Link href="/dashboard">Dashboard</Link>
             </li>
             <li>
-              <Link href="/about">About</Link>
+              <Link href="/leaderboard">Leaderboard</Link>
             </li>
           </ul>
         </div>
         <Link href="/" className="text-2xl font-bold">
-          Template Fullstack Web3
+          <Image src={logo} alt="logo" width={60} height={60} />
         </Link>
-      </div>
-      <div className="navbar-center hidden lg:flex">
-        <ul className="menu menu-horizontal px-1">
+        <ul className="menu menu-horizontal px-2 text-lg font-semibold text-gray-50">
           <li>
             <Link href="/">Home</Link>
           </li>
@@ -50,9 +50,25 @@ const Navbar = () => {
             <Link href="/dashboard">Dashboard</Link>
           </li>
           <li>
-            <Link href="/about">About</Link>
+            <Link href="/leaderboard">Leaderboard</Link>
+          </li>
+          <li>
+            <Link href="/documentation">Documentation</Link>
           </li>
         </ul>
+      </div>
+      <div className="navbar-center hidden lg:flex">
+        {/* <ul className="menu menu-horizontal px-1">
+          <li>
+            <Link href="/">Home</Link>
+          </li>
+          <li>
+            <Link href="/dashboard">Dashboard</Link>
+          </li>
+          <li>
+            <Link href="/leaderboard">Leaderboard</Link>
+          </li>
+        </ul> */}
       </div>
       <div className="navbar-end">
         {/* <a className="btn">Button</a> */}

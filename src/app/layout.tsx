@@ -4,8 +4,8 @@ import AppShell from "@/components/AppShell";
 import Provider from "./Provider";
 
 export const metadata: Metadata = {
-  title: "Template Fullstack Web3",
-  description: "Template Fullstack Web3",
+  title: "Velobid",
+  description: "The best app for auction base on blockchain",
 };
 
 export default function RootLayout({
