@@ -2,10 +2,41 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "../../public/img/velobid-tranparent.png";
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Mengubah state scrolled menjadi true jika posisi scroll lebih dari 50px
+      if (window.scrollY > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    // Menambahkan event listener saat komponen di-mount
+    window.addEventListener("scroll", handleScroll);
+
+    // Membersihkan event listener saat komponen di-unmount
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
   return (
-    <div className="navbar bg-three text-black shadow-md fixed top-0 z-50 px-5">
+    <div
+      className={`navbar fixed top-0 z-50 px-5 transition-all duration-300 ${
+        scrolled
+          ? "bg-transparent backdrop-blur-md text-black shadow-md"
+          : "bg-transparent text-black"
+      }`}
+      style={{
+        backdropFilter: scrolled ? "blur(8px)" : "none",
+      }}
+    >
       <div className="navbar-start">
         <div className="dropdown">
           <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
@@ -42,7 +73,9 @@ const Navbar = () => {
         <Link href="/" className="text-2xl font-bold">
           <Image src={logo} alt="logo" width={60} height={60} />
         </Link>
-        <ul className="menu menu-horizontal px-2 text-lg font-semibold text-gray-50">
+        <ul
+          className={`menu menu-horizontal px-2 text-lg font-semibold text-gray-50`}
+        >
           <li>
             <Link href="/">Home</Link>
           </li>
