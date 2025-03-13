@@ -18,7 +18,7 @@ contract UserManager is UUPSUpgradeable, OwnableUpgradeable {
         uint256 totalBidsPlaced;
         uint256 averageBidValue;
     }
-
+    
     mapping(address => UserStruct) private users;
     address[] private userList;
 

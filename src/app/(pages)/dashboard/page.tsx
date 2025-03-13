@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,10 +37,514 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import {
+  useAccount,
+  useReadContracts,
+  UseReadContractsReturnType,
+} from "wagmi";
+import { ToastContainer, toast } from "react-toastify";
+import { useEffect } from "react";
+
+const abi = [
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "target",
+        type: "address",
+      },
+    ],
+    name: "AddressEmptyCode",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "implementation",
+        type: "address",
+      },
+    ],
+    name: "ERC1967InvalidImplementation",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ERC1967NonPayable",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "FailedCall",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidInitialization",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "NotInitializing",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+    ],
+    name: "OwnableInvalidOwner",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "account",
+        type: "address",
+      },
+    ],
+    name: "OwnableUnauthorizedAccount",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ReentrancyGuardReentrantCall",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "UUPSUnauthorizedCallContext",
+    type: "error",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "slot",
+        type: "bytes32",
+      },
+    ],
+    name: "UUPSUnsupportedProxiableUUID",
+    type: "error",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "auctionId",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "auctionName",
+        type: "string",
+      },
+    ],
+    name: "AuctionCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "winner",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "AuctionEnded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "bidder",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "HighestBidIncreased",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: "uint64",
+        name: "version",
+        type: "uint64",
+      },
+    ],
+    name: "Initialized",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "previousOwner",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
+    name: "OwnershipTransferred",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "implementation",
+        type: "address",
+      },
+    ],
+    name: "Upgraded",
+    type: "event",
+  },
+  {
+    inputs: [],
+    name: "UPGRADE_INTERFACE_VERSION",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "auctionId",
+        type: "uint256",
+      },
+    ],
+    name: "auctionEnd",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "auctions",
+    outputs: [
+      {
+        internalType: "address payable",
+        name: "beneficiary",
+        type: "address",
+      },
+      {
+        internalType: "string",
+        name: "auctionName",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "auctionDescription",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "auctionEndTime",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "highestBidder",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "highestBid",
+        type: "uint256",
+      },
+      {
+        internalType: "bool",
+        name: "ended",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "auctionId",
+        type: "uint256",
+      },
+    ],
+    name: "bid",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "_auctionName",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_auctionDescription",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "biddingTime",
+        type: "uint256",
+      },
+      {
+        internalType: "address payable",
+        name: "beneficiaryAddress",
+        type: "address",
+      },
+    ],
+    name: "createAuction",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "count",
+        type: "uint256",
+      },
+    ],
+    name: "getRecentAuctions",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "address payable",
+            name: "beneficiary",
+            type: "address",
+          },
+          {
+            internalType: "string",
+            name: "auctionName",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "auctionDescription",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "auctionEndTime",
+            type: "uint256",
+          },
+          {
+            internalType: "address",
+            name: "highestBidder",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "highestBid",
+            type: "uint256",
+          },
+          {
+            internalType: "bool",
+            name: "ended",
+            type: "bool",
+          },
+        ],
+        internalType: "struct Auction.AuctionStruct[]",
+        name: "",
+        type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "userManagerAddress",
+        type: "address",
+      },
+    ],
+    name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "owner",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    name: "pendingReturns",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "proxiableUUID",
+    outputs: [
+      {
+        internalType: "bytes32",
+        name: "",
+        type: "bytes32",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "renounceOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newOwner",
+        type: "address",
+      },
+    ],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "newImplementation",
+        type: "address",
+      },
+      {
+        internalType: "bytes",
+        name: "data",
+        type: "bytes",
+      },
+    ],
+    name: "upgradeToAndCall",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "userManager",
+    outputs: [
+      {
+        internalType: "contract UserManager",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+];
 
 const DashboardPage = () => {
+  const { isConnected } = useAccount();
+  const notifyTransactionPending = () => toast("Your transaction is pending!");
+  const notifyTransactionSuccess = () => toast("Transaction success!");
+
+  // Read data from smart contract
+  const {
+    data,
+    isPending: isFetching,
+    refetch,
+  }: UseReadContractsReturnType = useReadContracts({
+    contracts: [
+      {
+        address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        abi,
+        functionName: "userManagerAddress",
+      },
+    ],
+  });
+
+  useEffect(() => {
+    if (data) {
+      console.log(data);
+    }
+  }, [data]);
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pt-24 pb-12 px-6">
+      <ToastContainer />
       {/* Top Section */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DashboardCard

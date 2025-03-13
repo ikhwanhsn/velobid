@@ -24,3 +24,5 @@ main().catch((error) => {
   console.error("Error during deployment:", error);
   process.exitCode = 1;
 });
+
+// npx hardhat run --network localhost scripts/deploy.js

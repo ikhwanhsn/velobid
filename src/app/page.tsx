@@ -1,6 +1,7 @@
 "use client";
 
 import Head from "next/head";
+import Link from "next/link";
 import { useState } from "react";
 import {
   FaEthereum,
@@ -30,9 +31,12 @@ export default function Home() {
           A secure, transparent, and efficient way to bid on-chain. Powered by
           Ethereum and upgradable smart contracts.
         </p>
-        <button className="mt-6 px-6 py-3 bg-yellow-500 text-gray-900 font-bold rounded-lg hover:bg-yellow-400 transition">
+        <Link
+          href="/dashboard"
+          className="mt-6 px-6 py-3 bg-yellow-500 text-gray-900 font-bold rounded-lg hover:bg-yellow-400 transition cursor-pointer"
+        >
           Get Started
-        </button>
+        </Link>
       </section>
 
       {/* Features Section */}
