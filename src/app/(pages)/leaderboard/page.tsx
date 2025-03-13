@@ -57,7 +57,23 @@ const LeaderboardPage = () => {
 
 export default LeaderboardPage;
 
-function LeaderboardCard({ title, description, icon, data }: any) {
+interface LeaderboardItem {
+  rank: number;
+  name: string;
+  bids?: number;
+  spent?: string;
+}
+function LeaderboardCard({
+  title,
+  description,
+  icon,
+  data,
+}: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  data: LeaderboardItem[];
+}) {
   return (
     <Card className="bg-gray-800 border border-gray-700 shadow-lg rounded-xl overflow-hidden  p-5">
       <CardHeader className="flex items-center gap-3">
@@ -83,24 +99,34 @@ function LeaderboardCard({ title, description, icon, data }: any) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((item: any, index: number) => (
-              <TableRow key={index} className="border-gray-700">
-                <TableCell className="font-bold flex items-center gap-2">
-                  {item.rank === 1 && (
-                    <Trophy size={16} className="text-yellow-500" />
-                  )}{" "}
-                  {item.rank === 2 && (
-                    <Trophy size={16} className="text-sky-500" />
-                  )}{" "}
-                  {item.rank === 3 && (
-                    <Trophy size={16} className="text-amber-500" />
-                  )}
-                  {item.rank}
-                </TableCell>
-                <TableCell>{item.name}</TableCell>
-                <TableCell>{item.bids || item.spent}</TableCell>
-              </TableRow>
-            ))}
+            {data.map(
+              (
+                item: {
+                  rank: number;
+                  name: string;
+                  bids?: number;
+                  spent?: string;
+                },
+                index: number
+              ) => (
+                <TableRow key={index} className="border-gray-700">
+                  <TableCell className="font-bold flex items-center gap-2">
+                    {item.rank === 1 && (
+                      <Trophy size={16} className="text-yellow-500" />
+                    )}{" "}
+                    {item.rank === 2 && (
+                      <Trophy size={16} className="text-sky-500" />
+                    )}{" "}
+                    {item.rank === 3 && (
+                      <Trophy size={16} className="text-amber-500" />
+                    )}
+                    {item.rank}
+                  </TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.bids || item.spent}</TableCell>
+                </TableRow>
+              )
+            )}
           </TableBody>
         </Table>
       </CardContent>

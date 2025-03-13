@@ -1,8 +1,9 @@
 "use client";
 
 import Head from "next/head";
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   FaEthereum,
   FaHammer,
@@ -157,7 +158,15 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ icon, title, description }: any) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="bg-gray-800 p-6 rounded-lg text-center shadow-lg flex flex-col items-center">
       <div className="text-5xl mb-4 text-yellow-500">{icon}</div>
@@ -167,7 +176,13 @@ function FeatureCard({ icon, title, description }: any) {
   );
 }
 
-function RoadmapItem({ title, description }: any) {
+function RoadmapItem({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
       <h3 className="text-xl font-bold mb-2">{title}</h3>
@@ -234,10 +249,20 @@ function FAQSection() {
   );
 }
 
-function ReviewCard({ avatar, name, rating, comment }: any) {
+function ReviewCard({
+  avatar,
+  name,
+  rating,
+  comment,
+}: {
+  avatar: string;
+  name: string;
+  rating: number;
+  comment: string;
+}) {
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-md flex items-center space-x-4">
-      <img
+      <Image
         src={avatar}
         alt={name}
         className="w-16 h-16 rounded-full border-2 border-yellow-500"

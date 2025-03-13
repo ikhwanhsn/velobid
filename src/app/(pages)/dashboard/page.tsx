@@ -30,7 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Activity,
   BarChart2,
-  ChevronDown,
   DollarSign,
   Filter,
   Gavel,
@@ -38,12 +37,12 @@ import {
   Users,
 } from "lucide-react";
 import {
-  useAccount,
+  // useAccount,
   useReadContracts,
   UseReadContractsReturnType,
 } from "wagmi";
-import { ToastContainer, toast } from "react-toastify";
-import { useEffect } from "react";
+import { ToastContainer } from "react-toastify";
+import React, { useEffect } from "react";
 
 const abi = [
   {
@@ -517,16 +516,16 @@ const abi = [
 ];
 
 const DashboardPage = () => {
-  const { isConnected } = useAccount();
-  const notifyTransactionPending = () => toast("Your transaction is pending!");
-  const notifyTransactionSuccess = () => toast("Transaction success!");
+  // const { isConnected } = useAccount();
+  // const notifyTransactionPending = () => toast("Your transaction is pending!");
+  // const notifyTransactionSuccess = () => toast("Transaction success!");
 
   // Read data from smart contract
   const {
     data,
-    isPending: isFetching,
-    refetch,
-  }: UseReadContractsReturnType = useReadContracts({
+  }: // isPending: isFetching,
+  // refetch,
+  UseReadContractsReturnType = useReadContracts({
     contracts: [
       {
         address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
@@ -646,23 +645,40 @@ const DashboardPage = () => {
 
 export default DashboardPage;
 
+interface DashboardItem {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}
+
 // ===== Dashboard Card =====
-function DashboardCard({ title, stats }: any) {
+function DashboardCard({
+  title,
+  stats,
+}: {
+  title: string;
+  stats: DashboardItem[];
+}) {
   return (
     <Card className="bg-gray-800 border border-gray-700 shadow-lg rounded-xl overflow-hidden  p-5">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-3 gap-4">
-        {stats.map((stat: any, index: number) => (
-          <div key={index} className="flex items-center gap-3">
-            <div className="bg-gray-700 p-3 rounded-full">{stat.icon}</div>
-            <div>
-              <p className="text-sm text-gray-400">{stat.label}</p>
-              <p className="text-lg font-bold text-white">{stat.value}</p>
+        {stats.map(
+          (
+            stat: { label: string; value: string; icon: React.ReactNode },
+            index: number
+          ) => (
+            <div key={index} className="flex items-center gap-3">
+              <div className="bg-gray-700 p-3 rounded-full">{stat.icon}</div>
+              <div>
+                <p className="text-sm text-gray-400">{stat.label}</p>
+                <p className="text-lg font-bold text-white">{stat.value}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </CardContent>
     </Card>
   );
