@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.26;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+contract Auction {
+    // ===== Constants =====
+    address public owner;
+    uint256 public userCount;
+    uint256 public auctionCount;
+    DataStruct public data;
 
-contract UserManager is UUPSUpgradeable, OwnableUpgradeable {
+    // ===== Structs =====
     struct UserStruct {
         string username;
         uint256 point;
@@ -15,186 +18,246 @@ contract UserManager is UUPSUpgradeable, OwnableUpgradeable {
         uint256 totalAuctionCreated;
         uint256 totalAuctionParticipated;
         uint256 totalWinningBids;
-        uint256 totalBidsPlaced;
         uint256 averageBidValue;
     }
-    
-    mapping(address => UserStruct) private users;
-    address[] private userList;
-
-    event UserRegistered(address indexed user, string username);
-    event UserUpdated(address indexed user);
-
-    function initialize() public initializer {
-        __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
-    }
-
-    function registerUser(string memory _username) external {
-        require(bytes(users[msg.sender].username).length == 0, "User already registered");
-
-        users[msg.sender] = UserStruct({
-            username: _username,
-            point: 0,
-            winrate: 0,
-            totalBid: 0,
-            totalValueBid: 0,
-            totalAuctionCreated: 0,
-            totalAuctionParticipated: 0,
-            totalWinningBids: 0,
-            totalBidsPlaced: 0,
-            averageBidValue: 0
-        });
-
-        userList.push(msg.sender);
-        emit UserRegistered(msg.sender, _username);
-    }
-
-    function updateUserStats(address user, uint256 bidAmount, bool isWinner) external onlyOwner {
-        require(bytes(users[user].username).length > 0, "User not registered");
-
-        users[user].totalBidsPlaced += 1;
-        users[user].totalValueBid += bidAmount;
-        users[user].totalAuctionParticipated += 1;
-
-        if (isWinner) {
-            users[user].point += 10;
-            users[user].totalWinningBids += 1;
-        }
-
-        if (users[user].totalBidsPlaced > 0) {
-            users[user].averageBidValue = users[user].totalValueBid / users[user].totalBidsPlaced;
-        }
-
-        users[user].winrate = (users[user].totalWinningBids * 100) / users[user].totalAuctionParticipated;
-
-        emit UserUpdated(user);
-    }
-
-    function updateAuctionCreated(address user) external onlyOwner {
-        require(bytes(users[user].username).length > 0, "User not registered");
-        users[user].totalAuctionCreated += 1;
-        emit UserUpdated(user);
-    }
-
-    function getUser(address user) external view returns (UserStruct memory) {
-        return users[user];
-    }
-
-    function getAllUsers() public view returns (UserStruct[] memory) {
-        UserStruct[] memory allUsers = new UserStruct[](userList.length);
-        for (uint i = 0; i < userList.length; i++) {
-            allUsers[i] = users[userList[i]];
-        }
-        return allUsers;
-    }
-
-    function getTopUsers() external view returns (UserStruct[] memory) {
-        UserStruct[] memory sortedUsers = getAllUsers();
-
-        for (uint i = 0; i < sortedUsers.length; i++) {
-            for (uint j = i + 1; j < sortedUsers.length; j++) {
-                if (sortedUsers[i].point < sortedUsers[j].point) {
-                    (sortedUsers[i], sortedUsers[j]) = (sortedUsers[j], sortedUsers[i]);
-                }
-            }
-        }
-        return sortedUsers;
-    }
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-}
-
-contract Auction is UUPSUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     struct AuctionStruct {
-        address payable beneficiary;
+        uint256 auctionId;
+        address beneficiary;
         string auctionName;
         string auctionDescription;
-        uint auctionEndTime;
+        uint256 auctionEndTime;
+        uint256 biddingTime;
+        uint256 additionalTime;
+        uint256 startingBid;
+        uint256 highestBid;
         address highestBidder;
-        uint highestBid;
+        uint256 totalVolumeBid;
+        address winner;
+        mapping(address => uint256) pendingReturn;
         bool ended;
     }
+    struct DataStruct {
+        uint256 totalAuction;
+        uint256 totalActiveAuction;
+        uint256 totalBidders;
+        uint256 totalBid;
+        uint256 totalVolumeBid;
+        uint256 highestBid;
+        address highestBidder;
+        uint256 averageBidValue;
+        uint256 totalUsers;
+    }
 
-    AuctionStruct[] public auctions;
-    mapping(address => uint) public pendingReturns;
-    UserManager public userManager;
+    // ===== Mappings =====
+    mapping(address => UserStruct) public users;
+    mapping(string => bool) public usernames;
+    mapping(uint256 => AuctionStruct) public auctions;
+    mapping(address => uint256[]) public userAuctions;
+    mapping(uint => address) public userIndex;
+    mapping(uint => uint256) public auctionIndex;
+    mapping(address => uint256) public topBidders;
+    mapping(address => uint256) public topSpenders;
 
+    // ===== Events =====
+    event UserRegistered(address indexed user, string username);
+    event UserUpdated(address indexed user);
     event AuctionCreated(uint indexed auctionId, string auctionName);
     event HighestBidIncreased(address indexed bidder, uint amount);
     event AuctionEnded(address indexed winner, uint amount);
+    event WithdrawFailed(address indexed user, uint amount);
+    event WithdrawSuccess(address indexed user, uint amount);
+    event EndFailed(uint indexed auctionId);
+    event EndSuccess(uint indexed auctionId);
+    event OwnerTransferred(address indexed previous, address indexed current);
 
-    function initialize(address userManagerAddress) public initializer {
-        __Ownable_init(msg.sender);
-        __ReentrancyGuard_init();
-        __UUPSUpgradeable_init();
-        userManager = UserManager(userManagerAddress);
+    // ===== Constructor =====
+    constructor() {
+        owner = msg.sender;
     }
 
-    function createAuction(
-        string memory _auctionName,
-        string memory _auctionDescription,
-        uint biddingTime,
-        address payable beneficiaryAddress
-    ) external onlyOwner {
-        auctions.push(
-            AuctionStruct({
-                auctionName: _auctionName,
-                auctionDescription: _auctionDescription,
-                auctionEndTime: block.timestamp + biddingTime,
-                beneficiary: beneficiaryAddress,
-                highestBidder: address(0),
-                highestBid: 0,
-                ended: false
-            })
-        );
-
-        userManager.updateAuctionCreated(msg.sender);
-        emit AuctionCreated(auctions.length - 1, _auctionName);
+    // ===== Modifiers =====
+    // onlyOwner
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only the owner can call this function");
+        _;
+    }
+    // nonReentrant
+    bool private reentrant = false;
+    modifier nonReentrant() {
+        require(!reentrant, "ReentrancyGuard: reentrant call");
+        reentrant = true;
+        _;
+        reentrant = false;
+    }
+    // mustRegister
+    modifier mustRegister() {
+        require(bytes(users[msg.sender].username).length != 0, "User must register first");
+        _;
     }
 
-    function getRecentAuctions(uint count) external view returns (AuctionStruct[] memory) {
-        uint start = (auctions.length > count) ? auctions.length - count : 0;
-        AuctionStruct[] memory recentAuctions = new AuctionStruct[](auctions.length - start);
+    // ===== Handle User =====
+    // Register User
+    function registerUser(string memory _username) external {
+        require(bytes(users[msg.sender].username).length == 0, "You already registered");
+        require(!usernames[_username], "Username already taken, please try with a different username");
+        require(bytes(_username).length >= 5 && bytes(_username).length <= 15, "Username must be 5-15 characters");
+        UserStruct storage newUser = users[msg.sender];
+        newUser.username = _username;
+        userIndex[userCount] = msg.sender;
+        usernames[_username] = true;
+        data.totalUsers++;
+        userCount++;
+        emit UserRegistered(msg.sender, _username);
+    }
+    // Get Users
+    function getUsers(uint _startIndex, uint _limit) external view returns (address[] memory) {
+        require(userCount > 0, "No user found");
+        require(_startIndex < userCount, "Start index out of bounds");
         
-        for (uint i = start; i < auctions.length; i++) {
-            recentAuctions[i - start] = auctions[i];
+        uint endIndex = _startIndex + _limit;
+        if (endIndex > userCount) {
+            endIndex = userCount;
         }
         
-        return recentAuctions;
+        address[] memory newUsers = new address[](endIndex - _startIndex);
+        for (uint i = _startIndex; i < endIndex; i++) {
+            newUsers[i - _startIndex] = userIndex[i];
+        }
+        return newUsers;
     }
 
-    function bid(uint auctionId) external payable nonReentrant {
-        require(auctionId < auctions.length, "Auction does not exist");
-        AuctionStruct storage auction = auctions[auctionId];
+    // ===== Handle Auction =====
+    // Create Auction
+    function createAuction(string memory _auctionName, string memory _auctionDescription, uint256 _biddingTime, uint256 _startingBid) external mustRegister {
+        uint256 auctionId = auctionCount;
+        AuctionStruct storage newAuction = auctions[auctionId];
 
-        require(block.timestamp <= auction.auctionEndTime, "Auction already ended");
-        require(msg.value > auction.highestBid, "Bid not high enough");
+        newAuction.auctionId = auctionId;
+        newAuction.beneficiary = msg.sender;
+        newAuction.auctionName = _auctionName;
+        newAuction.auctionDescription = _auctionDescription;
+        newAuction.auctionEndTime = block.timestamp + _biddingTime;
+        newAuction.biddingTime = _biddingTime;
+        newAuction.startingBid = _startingBid;
+        newAuction.ended = false;
 
-        if (auction.highestBid != 0) {
-            pendingReturns[auction.highestBidder] += auction.highestBid;
+        userAuctions[msg.sender].push(auctionId);
+        auctionIndex[auctionCount] = auctionId;
+        auctionCount++;
+        data.totalAuction++;
+        
+        emit AuctionCreated(auctionId, _auctionName);
+    }
+    // Get User Auctions
+    function getUserAuctions(address _user) external view returns (uint256[] memory) {
+        return userAuctions[_user];
+    }
+    // Get Auctions
+    function getAuctions(uint _startIndex, uint _limit) external view returns (uint256[] memory) {
+        require(_startIndex < auctionCount, "Start index out of bounds");
+        
+        uint endIndex = _startIndex + _limit;
+        if (endIndex > auctionCount) {
+            endIndex = auctionCount;
+        }
+        
+        uint256[] memory newAuction = new uint256[](endIndex - _startIndex);
+        for (uint i = _startIndex; i < endIndex; i++) {
+            newAuction[i - _startIndex] = auctionIndex[i];
+        }
+        return newAuction;
+    }
+    // Bid
+    function bid(uint256 _auctionId, uint256 _amount) external nonReentrant mustRegister returns (bool){
+        require(_auctionId < auctionCount, "Invalid Auction Id");
+        require(_amount >= auctions[_auctionId].startingBid, "Bid cannot be less than starting bid");
+        require(_amount > auctions[_auctionId].highestBid, "Bid cannot be less than highest bid");
+        require(auctions[_auctionId].ended == false && block.timestamp <= auctions[_auctionId].auctionEndTime, "Auction has ended");
+        
+        AuctionStruct storage newAuction = auctions[_auctionId];
+        UserStruct storage newUser = users[msg.sender];
+        if(newAuction.auctionEndTime - block.timestamp < 600) {
+            newAuction.auctionEndTime = block.timestamp + 300;
+            newAuction.additionalTime += block.timestamp + 300;
         }
 
-        auction.highestBidder = msg.sender;
-        auction.highestBid = msg.value;
-        emit HighestBidIncreased(msg.sender, msg.value);
+        address highestBidder = newAuction.highestBidder;
+        uint256 highestBid = newAuction.highestBid;
+        newAuction.pendingReturn[highestBidder] += highestBid;
+        newAuction.highestBidder = msg.sender;
+        newAuction.highestBid = _amount;
+        newAuction.totalVolumeBid += _amount;
+        
+        newUser.point += 10;
+        newUser.totalBid++;
+        newUser.totalValueBid += _amount;
+        newUser.averageBidValue = newUser.totalValueBid / newUser.totalBid;
+        newUser.totalAuctionParticipated++;
 
-        userManager.updateUserStats(msg.sender, msg.value, false);
+        if(_amount > data.totalVolumeBid) {
+            data.highestBidder = msg.sender;
+            data.highestBid = _amount;
+        }
+        data.totalBid++;
+        data.totalVolumeBid += _amount;
+        data.averageBidValue = data.totalVolumeBid / data.totalBid;
+
+        topBidders[msg.sender]++;
+        topSpenders[msg.sender] += _amount;
+
+        return true;
+    }
+    // Withdraw
+    function withdraw(uint256 _auctionId) external mustRegister nonReentrant returns (bool){
+        require(_auctionId < auctionCount, "Invalid Auction Id");
+
+        AuctionStruct storage newAuction = auctions[_auctionId];
+        uint256 amount = newAuction.pendingReturn[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+        newAuction.pendingReturn[msg.sender] = 0;
+
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        
+        if (!success) {
+            newAuction.pendingReturn[msg.sender] = amount;
+            emit WithdrawFailed(msg.sender, amount);
+            return false;
+        }
+
+        emit WithdrawSuccess(msg.sender, amount);
+        return true;
+    }
+    // Auction End
+    function auctionEnd(uint256 _auctionId) external mustRegister nonReentrant returns (bool){
+        require(_auctionId < auctionCount, "Invalid Auction Id");
+
+        AuctionStruct storage newAuction = auctions[_auctionId];
+        UserStruct storage newUser = users[msg.sender];
+        require(newAuction.ended == false && block.timestamp >= newAuction.auctionEndTime, "Auction not ended yet");
+
+        newAuction.ended = true;
+        newAuction.winner = newAuction.highestBidder;
+        newUser.totalWinningBids++;
+        newUser.winrate = newUser.totalAuctionParticipated / newUser.totalWinningBids;
+
+        uint256 amount = newAuction.highestBid;
+        newAuction.highestBid = 0;
+
+        (bool success, ) = payable(newAuction.beneficiary).call{value: amount}("");
+        
+        if (!success) {
+            newAuction.highestBid = amount;
+            emit EndFailed(_auctionId);
+            return false;
+        }
+
+        emit EndSuccess(_auctionId);
+        return true;
     }
 
-    function auctionEnd(uint auctionId) external nonReentrant {
-        require(auctionId < auctions.length, "Auction does not exist");
-        AuctionStruct storage auction = auctions[auctionId];
-
-        require(block.timestamp >= auction.auctionEndTime, "Auction not yet ended");
-        require(!auction.ended, "Auction already ended");
-
-        auction.ended = true;
-        emit AuctionEnded(auction.highestBidder, auction.highestBid);
-
-        userManager.updateUserStats(auction.highestBidder, auction.highestBid, true);
-        auction.beneficiary.transfer(auction.highestBid);
+    // ===== Handle Ownership =====
+    function transferOwnership(address _newOwner) external onlyOwner {
+        emit OwnerTransferred(owner, _newOwner);
+        owner = _newOwner;
     }
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Head from "next/head";
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 import {
@@ -11,6 +11,7 @@ import {
   FaStar,
   FaUsers,
 } from "react-icons/fa";
+import profil from "../../public/img/profil.jpg";
 
 export default function Home() {
   return (
@@ -107,25 +108,25 @@ export default function Home() {
         </h2>
         <div className="container mx-auto grid md:grid-cols-2 gap-8 px-6">
           <ReviewCard
-            avatar="/user1.jpg"
+            avatar={profil}
             name="Alice Thompson"
             rating={5}
             comment="This platform is a game-changer! The transparency and fairness of the auction system are outstanding."
           />
           <ReviewCard
-            avatar="/expert.jpg"
+            avatar={profil}
             name="Dr. Blockchain"
             rating={5}
             comment="A top-tier decentralized auction solution with smart contract upgradability. Truly future-proof!"
           />
           <ReviewCard
-            avatar="/expert.jpg"
+            avatar={profil}
             name="Dr. Blockchain"
             rating={5}
             comment="A top-tier decentralized auction solution with smart contract upgradability. Truly future-proof!"
           />
           <ReviewCard
-            avatar="/expert.jpg"
+            avatar={profil}
             name="Dr. Blockchain"
             rating={5}
             comment="A top-tier decentralized auction solution with smart contract upgradability. Truly future-proof!"
@@ -255,7 +256,7 @@ function ReviewCard({
   rating,
   comment,
 }: {
-  avatar: string;
+  avatar: StaticImageData;
   name: string;
   rating: number;
   comment: string;
